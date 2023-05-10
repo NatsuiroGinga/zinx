@@ -1,9 +1,9 @@
 package znet
 
 import (
-	"fmt"
 	"net"
 	"zinx/lib/logger"
+	"zinx/lib/util"
 	"zinx/ziface"
 )
 
@@ -82,8 +82,11 @@ func (conn *Connection) RemoteAddr() net.Addr {
 }
 
 func (conn *Connection) Send(data []byte) error {
-	logger.Info(fmt.Sprintf("conn Send()...connId = %d, data = %s", conn.connId, data))
-	//TODO implement me
+	if _, err := conn.conn.Write(data); err != nil {
+		logger.Error("Send data error: ", err)
+		return err
+	}
+	logger.Info("Send data success:", util.Bytes2String(data))
 	return nil
 }
 
