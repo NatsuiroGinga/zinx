@@ -3,6 +3,7 @@ package znet
 import (
 	"fmt"
 	"net"
+	"time"
 	"zinx/handler"
 	"zinx/lib/logger"
 	"zinx/ziface"
@@ -30,6 +31,15 @@ func NewServer(name string) ziface.IServer {
 		IP:        IP,
 		Port:      Port,
 	}
+}
+
+func init() {
+	logger.Setup(&logger.Settings{
+		Path:       "../logs",     // 日志文件路径
+		Name:       "zinx",        // 日志文件名称
+		Ext:        "log",         // 日志文件后缀
+		TimeFormat: time.DateOnly, // 时间格式
+	})
 }
 
 func (server *Server) Start() {
@@ -60,7 +70,7 @@ func (server *Server) Start() {
 			dealConn := NewConnection(conn, cid, handler.EchoHandler)
 			cid++
 			// 3.2 处理客户端业务
-			logger.Info(fmt.Sprintf("Accept a client, IP: %s, Port: %d", conn.RemoteAddr(), conn.RemoteAddr().(*net.TCPAddr).Port))
+			logger.Info(fmt.Sprintf("Accept a client, Address: %s", conn.RemoteAddr()))
 			go dealConn.Start()
 		}
 	}()

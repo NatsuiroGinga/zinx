@@ -5,11 +5,6 @@ import (
 	"os"
 )
 
-func FileExists(filename string) bool {
-	stat, err := os.Stat(filename)
-	return err == nil && !stat.IsDir()
-}
-
 func checkNotExist(src string) bool {
 	_, err := os.Stat(src)
 	return os.IsNotExist(err)
