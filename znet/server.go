@@ -33,7 +33,7 @@ func NewServer(name string) ziface.IServer {
 }
 
 func (server *Server) Start() {
-	go logger.Info(fmt.Sprintf("Server Listener at IP: %s, Port: %d, is starting...", server.IP, server.Port))
+	logger.Info(fmt.Sprintf("Server Listener at IP: %s, Port: %d, is starting...", server.IP, server.Port))
 	// 1. 创建socket
 	addr, err := net.ResolveTCPAddr(server.IPVersion, fmt.Sprintf("%s:%d", server.IP, server.Port))
 	if err != nil {
@@ -46,7 +46,7 @@ func (server *Server) Start() {
 		logger.Error(fmt.Sprintf("Listen TCP Address failed: %s", err.Error()))
 		return
 	}
-	go logger.Info(fmt.Sprintf("Server Listener at IP: %s, Port: %d, is started", server.IP, server.Port))
+	logger.Info(fmt.Sprintf("Server Listener at IP: %s, Port: %d, is started", server.IP, server.Port))
 	// 3. 阻塞等待客户端连接，处理客户端连接业务
 	for {
 		// 3.1 如果有客户端连接，阻塞返回
@@ -56,7 +56,7 @@ func (server *Server) Start() {
 			continue
 		}
 		// 3.2 处理客户端业务
-		go logger.Info(fmt.Sprintf("Accept a client, IP: %s, Port: %d", conn.RemoteAddr(), conn.RemoteAddr().(*net.TCPAddr).Port))
+		logger.Info(fmt.Sprintf("Accept a client, IP: %s, Port: %d", conn.RemoteAddr(), conn.RemoteAddr().(*net.TCPAddr).Port))
 		go handle(conn)
 	}
 }
