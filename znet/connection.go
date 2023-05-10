@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"fmt"
 	"net"
 	"zinx/lib/logger"
 	"zinx/ziface"
@@ -8,18 +9,18 @@ import (
 
 // Connection 链接模块
 type Connection struct {
-	Conn     *net.TCPConn      // 当前链接的TCPConn
-	ConnID   uint32            // 链接的ID
-	isClosed bool              // 当前的链接状态
-	handler  ziface.HandleFunc // 当前链接所绑定的处理业务方法
-	ExitChan chan struct{}     // 告知当前链接已经退出的/停止的channel
+	conn     *net.TCPConn   // 当前链接的TCPConn
+	connId   uint32         // 链接的ID
+	isClosed bool           // 当前的链接状态
+	exitChan chan struct{}  // 告知当前链接已经退出的/停止的channel
+	router   ziface.IRouter // 当前链接所绑定的router对象
 }
 
 // StartReader 链接的读业务方法
-func (conn *Connection) StartReader() {
+func (conn *Connection) startReader() {
 	logger.Info("Reader Goroutine is running...")
 	defer func() {
-		logger.Info("ConnID = ", conn.ConnID, " Reader is exit, remote addr is ", conn.RemoteAddr().String())
+		logger.Info("connId = ", conn.connId, " Reader is exit, remote addr is ", conn.RemoteAddr().String())
 		conn.Stop()
 	}()
 
@@ -30,45 +31,47 @@ func (conn *Connection) StartReader() {
 	)
 	for {
 		// 读取客户端的数据到buf中，最大512字节
-		if n, err = conn.Conn.Read(buf); err != nil {
+		if n, err = conn.conn.Read(buf); err != nil {
 			logger.Error("recv buf err", err)
 			continue
 		}
-		// 调用当前链接所绑定的handle方法
-		if err = conn.handler(conn.Conn, buf, n); err != nil {
-			logger.Error("ConnID = ", conn.ConnID, "handle is error", err)
-			break
-		}
+		// 调用当前链接所绑定的router的PreHandle方法等
+		request := NewRequest(conn, buf[:n])
+		go func() {
+			conn.router.PreHandle(request)
+			conn.router.Handle(request)
+			conn.router.PostHandle(request)
+		}()
 	}
 }
 
 // Start 启动链接，让当前的链接准备开始工作
 func (conn *Connection) Start() {
-	logger.Info("Conn Start()...ConnID = ", conn.ConnID)
+	logger.Info("conn Start()...connId = ", conn.connId)
 	// 1. 启动从当前链接的读数据业务
-	go conn.StartReader()
+	go conn.startReader()
 	// 2. 启动从当前链接写数据业务
 }
 
 // Stop 停止链接，结束当前链接的工作
 func (conn *Connection) Stop() {
-	logger.Info("Conn Stop()...ConnID = ", conn.ConnID)
+	logger.Info("conn Stop()...connId = ", conn.connId)
 	if conn.isClosed {
 		return
 	}
 	conn.isClosed = true
 	// 1. 关闭socket链接
-	_ = conn.Conn.Close()
+	_ = conn.conn.Close()
 	// 2. 关闭该链接全部管道
-	close(conn.ExitChan)
+	close(conn.exitChan)
 }
 
-func (conn *Connection) GetTCPConnection() *net.TCPConn {
+func (conn *Connection) TcpConnection() *net.TCPConn {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (conn *Connection) GetConnID() uint32 {
+func (conn *Connection) ConnID() uint32 {
 	//TODO implement me
 	panic("implement me")
 }
@@ -79,17 +82,18 @@ func (conn *Connection) RemoteAddr() net.Addr {
 }
 
 func (conn *Connection) Send(data []byte) error {
+	logger.Info(fmt.Sprintf("conn Send()...connId = %d, data = %s", conn.connId, data))
 	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 // NewConnection 初始化链接模块的方法
-func NewConnection(conn *net.TCPConn, connID uint32, handler ziface.HandleFunc) *Connection {
+func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) *Connection {
 	return &Connection{
-		Conn:     conn,
-		ConnID:   connID,
+		conn:     conn,
+		connId:   connID,
 		isClosed: false,
-		handler:  handler,
-		ExitChan: make(chan struct{}, 1),
+		exitChan: make(chan struct{}, 1),
+		router:   router,
 	}
 }

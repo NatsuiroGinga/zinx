@@ -4,33 +4,44 @@ import (
 	"fmt"
 	"net"
 	"time"
-	"zinx/handler"
 	"zinx/lib/logger"
 	"zinx/ziface"
 )
 
 // 默认配置
 const (
-	IPVersion = "tcp4"
-	IP        = "0.0.0.0"
-	Port      = 8848
+	IP_VERSION = "tcp4"
+	IP         = "0.0.0.0"
+	PORT       = 8848
 )
 
 // Server defines the server struct
 type Server struct {
-	Name      string // server name
-	IPVersion string // server bind ip version
-	IP        string // server bind ip
-	Port      int    // server bind port
+	name      string         // server name
+	ipVersion string         // server bind ip version
+	iP        string         // server bind ip
+	port      int            // server bind port
+	router    ziface.IRouter // router
 }
 
-func NewServer(name string) ziface.IServer {
+func (server *Server) RegisterRouter(router ziface.IRouter) ziface.IServer {
+	server.router = router
+	logger.Info("Add Router success!")
+	return server
+}
+
+func NewServer(name string) *Server {
 	return &Server{
-		Name:      name,
-		IPVersion: IPVersion,
-		IP:        IP,
-		Port:      Port,
+		name:      name,
+		ipVersion: IP_VERSION,
+		iP:        IP,
+		port:      PORT,
 	}
+}
+
+// NewServerWithRouter creates a server with router
+func NewServerWithRouter(name string, router ziface.IRouter) (server *Server) {
+	return NewServer(name).RegisterRouter(router).(*Server)
 }
 
 func init() {
@@ -43,21 +54,21 @@ func init() {
 }
 
 func (server *Server) Start() {
-	logger.Info(fmt.Sprintf("Server Listener at IP: %s, Port: %d, is starting...", server.IP, server.Port))
+	logger.Info(fmt.Sprintf("Server Listener at iP: %s, port: %d, is starting...", server.iP, server.port))
 	go func() {
 		// 1. 创建socket
-		addr, err := net.ResolveTCPAddr(server.IPVersion, fmt.Sprintf("%s:%d", server.IP, server.Port))
+		addr, err := net.ResolveTCPAddr(server.ipVersion, fmt.Sprintf("%s:%d", server.iP, server.port))
 		if err != nil {
 			logger.Error(fmt.Sprintf("Resolve TCP Address failed: %s", err.Error()))
 			return
 		}
 		// 2. 监听服务器地址
-		listener, err := net.ListenTCP(server.IPVersion, addr)
+		listener, err := net.ListenTCP(server.ipVersion, addr)
 		if err != nil {
 			logger.Error(fmt.Sprintf("Listen TCP Address failed: %s", err.Error()))
 			return
 		}
-		logger.Info(fmt.Sprintf("Server Listener at IP: %s, Port: %d, is started", server.IP, server.Port))
+		logger.Info(fmt.Sprintf("Server Listener at iP: %s, port: %d, is started", server.iP, server.port))
 		cid := uint32(0)
 		// 3. 阻塞等待客户端连接，处理客户端连接业务
 		for {
@@ -67,7 +78,7 @@ func (server *Server) Start() {
 				logger.Error(fmt.Sprintf("Accept TCP failed: %s", err.Error()))
 				continue
 			}
-			dealConn := NewConnection(conn, cid, handler.EchoHandler)
+			dealConn := NewConnection(conn, cid, server.router)
 			cid++
 			// 3.2 处理客户端业务
 			logger.Info(fmt.Sprintf("Accept a client, Address: %s", conn.RemoteAddr()))
