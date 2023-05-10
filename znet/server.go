@@ -56,6 +56,7 @@ func (server *Server) Start() {
 			continue
 		}
 		// 3.2 处理客户端业务
+		go logger.Info(fmt.Sprintf("Accept a client, IP: %s, Port: %d", conn.RemoteAddr(), conn.RemoteAddr().(*net.TCPAddr).Port))
 		go handle(conn)
 	}
 }
