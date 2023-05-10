@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"io"
 	"net"
 	"zinx/lib/logger"
 	"zinx/lib/util"
@@ -32,6 +33,10 @@ func (conn *Connection) startReader() {
 	for {
 		// 读取客户端的数据到buf中，最大512字节
 		if n, err = conn.conn.Read(buf); err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				logger.Info("client closed, ip:", conn.RemoteAddr())
+				return
+			}
 			logger.Error("recv buf err", err)
 			continue
 		}
