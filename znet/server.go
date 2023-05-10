@@ -19,7 +19,7 @@ const (
 type Server struct {
 	name      string         // server name
 	ipVersion string         // server bind ip version
-	iP        string         // server bind ip
+	ip        string         // server bind ip
 	port      int            // server bind port
 	router    ziface.IRouter // router
 }
@@ -34,7 +34,7 @@ func NewServer(name string) *Server {
 	return &Server{
 		name:      name,
 		ipVersion: IP_VERSION,
-		iP:        IP,
+		ip:        IP,
 		port:      PORT,
 	}
 }
@@ -54,10 +54,10 @@ func init() {
 }
 
 func (server *Server) Start() {
-	logger.Info(fmt.Sprintf("Server Listener at iP: %s, port: %d, is starting...", server.iP, server.port))
+	logger.Info(fmt.Sprintf("Server Listener at ip: %s, port: %d, is starting...", server.ip, server.port))
 	go func() {
 		// 1. 创建socket
-		addr, err := net.ResolveTCPAddr(server.ipVersion, fmt.Sprintf("%s:%d", server.iP, server.port))
+		addr, err := net.ResolveTCPAddr(server.ipVersion, fmt.Sprintf("%s:%d", server.ip, server.port))
 		if err != nil {
 			logger.Error(fmt.Sprintf("Resolve TCP Address failed: %s", err.Error()))
 			return
@@ -68,7 +68,7 @@ func (server *Server) Start() {
 			logger.Error(fmt.Sprintf("Listen TCP Address failed: %s", err.Error()))
 			return
 		}
-		logger.Info(fmt.Sprintf("Server Listener at iP: %s, port: %d, is started", server.iP, server.port))
+		logger.Info(fmt.Sprintf("Server Listener at ip: %s, port: %d, is started", server.ip, server.port))
 		cid := uint32(0)
 		// 3. 阻塞等待客户端连接，处理客户端连接业务
 		for {
