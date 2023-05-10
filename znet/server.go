@@ -35,7 +35,7 @@ func NewServer(name string) ziface.IServer {
 
 func init() {
 	logger.Setup(&logger.Settings{
-		Path:       "../logs",     // 日志文件路径
+		Path:       "./logs",      // 日志文件路径
 		Name:       "zinx",        // 日志文件名称
 		Ext:        "log",         // 日志文件后缀
 		TimeFormat: time.DateOnly, // 时间格式
