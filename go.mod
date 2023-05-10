@@ -1,3 +1,3 @@
-module github.com/NatsuiroGinga/zinx
+module zinx
 
 go 1.20
