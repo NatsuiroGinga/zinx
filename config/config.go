@@ -43,7 +43,7 @@ var ZinxProperties *zinxProperties
 // zinxProperties 框架配置参数
 type zinxProperties struct {
 	MaxConnections int    `json:"max-connections"`  // 当前服务器主机允许的最大连接数
-	MaxPackageSize int    `json:"max-package-size"` // 框架的数据包的最大值
+	MaxPackageSize uint32 `json:"max-package-size"` // 框架的数据包的最大值
 	Version        string `json:"version"`          // Zinx版本
 }
 
@@ -53,6 +53,7 @@ func (properties *zinxProperties) String() string {
 
 // 初始化配置参数
 func init() {
+	filename := "config/zinx.json"
 	ServerProperties = &serverProperties{
 		Port:      8848,
 		Name:      "ZinxServerApp",
@@ -65,8 +66,15 @@ func init() {
 		MaxPackageSize: 4 << 10,
 		Version:        "v0.4",
 	}
+	if fileExists(filename) {
+		loadFile(filename)
+	}
+}
 
-	loadFile("config/zinx.json")
+// fileExists 判断文件是否存在
+func fileExists(filename string) bool {
+	stat, err := os.Stat(filename)
+	return err == nil && !stat.IsDir()
 }
 
 // LoadFile 加载配置文件

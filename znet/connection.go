@@ -1,10 +1,10 @@
 package znet
 
 import (
+	"io"
 	"net"
-	"zinx/config"
+	errs "zinx/lib/enum/err"
 	"zinx/lib/logger"
-	"zinx/lib/util"
 	"zinx/ziface"
 )
 
@@ -25,19 +25,36 @@ func (conn *Connection) startReader() {
 		conn.Stop()
 	}()
 
-	buf := make([]byte, config.ZinxProperties.MaxPackageSize)
 	var (
-		n   int
+		msg ziface.IMessage
 		err error
 	)
+	header := make([]byte, dataPack.HeadLen())
+
 	for {
-		// 读取客户端的数据到buf中，最大512字节
-		if n, err = conn.conn.Read(buf); err != nil {
-			logger.Error("recv buf err", err)
-			return
+		// 读取客户端的数据到buf中
+		if _, err = io.ReadFull(conn.conn, header); err != nil {
+			logger.Error("conn Read error: ", err)
+			break
+		}
+		// 拆包，得到msgId和dataLen放在msg中
+		if msg, err = dataPack.Unpack(header); err != nil {
+			logger.Error("unpack error: ", err)
+			break
+		}
+		// 根据dataLen再次读取data，放在msg.Data中
+		if msg.DataLen() > 0 {
+			data := make([]byte, msg.DataLen())
+			if _, err = io.ReadFull(conn.conn, data); err != nil {
+				logger.Error("read msg data error : ", err)
+				break
+			}
+			msg.SetData(data)
 		}
 		// 调用当前链接所绑定的router的PreHandle方法等
-		request := NewRequest(conn, buf[:n])
+		request := NewRequest(conn, msg)
+
+		// 从路由中，找到注册绑定的Conn对应的router调用
 		go func() {
 			conn.router.PreHandle(request)
 			conn.router.Handle(request)
@@ -82,13 +99,25 @@ func (conn *Connection) RemoteAddr() net.Addr {
 	panic("implement me")
 }
 
-func (conn *Connection) Send(data []byte) error {
-	if _, err := conn.conn.Write(data); err != nil {
-		logger.Error("Send data error: ", err)
-		return err
+func (conn *Connection) Send(msgId uint32, data []byte) (err error) {
+	// 1. 判断当前链接是否已经关闭
+	if conn.isClosed {
+		return errs.CONNECT_CLOSED
 	}
-	logger.Info("Send data success:", util.Bytes2String(data))
-	return nil
+	// 2. 将data进行封包，并且发送
+	message := NewMessage(msgId, data)
+	var packedBytes []byte
+	if packedBytes, err = dataPack.Pack(message); err != nil {
+		logger.Error("pack error: ", err)
+		return
+	}
+	// 3. 写回客户端
+	if _, err = conn.conn.Write(packedBytes); err != nil {
+		logger.Error("write error: ", err)
+		return
+	}
+
+	return
 }
 
 // NewConnection 初始化链接模块的方法
