@@ -9,6 +9,6 @@ type startStop interface {
 // IServer interface defines the server interface
 type IServer interface {
 	startStop
-	Serve()                                // start the server and serve
-	RegisterRouter(router IRouter) IServer // register router
+	Serve()                                            // start the server and serve
+	RegisterRouter(msgID uint32, router IRouter) error // register router
 }

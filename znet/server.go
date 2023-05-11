@@ -5,7 +5,9 @@ import (
 	"net"
 	"time"
 	"zinx/config"
+	errs "zinx/lib/enum/err"
 	"zinx/lib/logger"
+	"zinx/lib/util"
 	"zinx/ziface"
 )
 
@@ -14,17 +16,22 @@ const IP_VERSION = "tcp4"
 
 // Server defines the server struct
 type Server struct {
-	name      string         // server name
-	ipVersion string         // server bind ip version
-	ip        string         // server bind ip
-	port      int            // server bind port
-	router    ziface.IRouter // router
+	name       string             // server name
+	ipVersion  string             // server bind ip version
+	ip         string             // server bind ip
+	port       int                // server bind port
+	msgHandler ziface.IMsgHandler // handler for msg
 }
 
-func (server *Server) RegisterRouter(router ziface.IRouter) ziface.IServer {
-	server.router = router
+func (server *Server) RegisterRouter(msgID uint32, router ziface.IRouter) (err error) {
+	err = server.msgHandler.RegisterRouter(msgID, router)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
 	logger.Info("Add Router success!")
-	return server
+
+	return
 }
 
 func NewServer() *Server {
@@ -34,11 +41,6 @@ func NewServer() *Server {
 		ip:        config.ServerProperties.Host,
 		port:      config.ServerProperties.Port,
 	}
-}
-
-// NewServerWithRouter creates a server with router
-func NewServerWithRouter(name string, router ziface.IRouter) (server *Server) {
-	return NewServer().RegisterRouter(router).(*Server)
 }
 
 func init() {
@@ -76,10 +78,10 @@ func (server *Server) Start() {
 			// 3.1 如果有客户端连接，阻塞返回
 			conn, err := listener.AcceptTCP()
 			if err != nil {
-				logger.Error(fmt.Sprintf("Accept TCP failed: %s", err.Error()))
+				logger.Error(util.NewErrorWithPattern(errs.ACCEPT_TCP_FAILED, err.Error()))
 				continue
 			}
-			dealConn := NewConnection(conn, cid, server.router)
+			dealConn := NewConnection(conn, cid, server.msgHandler)
 			cid++
 			// 3.2 处理客户端业务
 			logger.Info(fmt.Sprintf("Accept a client, Address: %s", conn.RemoteAddr()))

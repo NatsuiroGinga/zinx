@@ -10,11 +10,11 @@ import (
 
 // Connection 链接模块
 type Connection struct {
-	conn     *net.TCPConn   // 当前链接的TCPConn
-	connId   uint32         // 链接的ID
-	isClosed bool           // 当前的链接状态
-	exitChan chan struct{}  // 告知当前链接已经退出的/停止的channel
-	router   ziface.IRouter // 当前链接所绑定的router对象
+	conn       *net.TCPConn       // 当前链接的TCPConn
+	connId     uint32             // 链接的ID
+	isClosed   bool               // 当前的链接状态
+	exitChan   chan struct{}      // 告知当前链接已经退出的/停止的channel
+	msgHandler ziface.IMsgHandler // 消息管理模块
 }
 
 // StartReader 链接的读业务方法
@@ -56,9 +56,11 @@ func (conn *Connection) startReader() {
 
 		// 从路由中，找到注册绑定的Conn对应的router调用
 		go func() {
-			conn.router.PreHandle(request)
-			conn.router.Handle(request)
-			conn.router.PostHandle(request)
+			err = conn.msgHandler.Handle(request)
+			if err != nil {
+				logger.Error("connId = ", conn.connId, " handle error: ", err)
+				return
+			}
 		}()
 	}
 }
@@ -121,12 +123,12 @@ func (conn *Connection) Send(msgId uint32, data []byte) (err error) {
 }
 
 // NewConnection 初始化链接模块的方法
-func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) *Connection {
+func NewConnection(conn *net.TCPConn, connID uint32, msgHandler ziface.IMsgHandler) *Connection {
 	return &Connection{
-		conn:     conn,
-		connId:   connID,
-		isClosed: false,
-		exitChan: make(chan struct{}, 1),
-		router:   router,
+		conn:       conn,
+		connId:     connID,
+		isClosed:   false,
+		exitChan:   make(chan struct{}, 1),
+		msgHandler: msgHandler,
 	}
 }
