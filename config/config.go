@@ -7,6 +7,22 @@ import (
 	"zinx/ziface"
 )
 
+/* 配置文件格式
+{
+  "server": {
+    "name": "zinx",
+    "type": "tcp",
+    "host": "127.0.0.1",
+    "port": 8848
+  },
+  "zinx": {
+    "version": "V0.4",
+    "max_conn": 1000,
+    "max_package_size": 4096
+  }
+}
+*/
+
 // ServerProperties 服务器配置参数
 var ServerProperties *serverProperties
 
