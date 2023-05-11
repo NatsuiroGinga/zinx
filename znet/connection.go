@@ -1,11 +1,9 @@
 package znet
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net"
-	"reflect"
 	errs "zinx/lib/enum/err"
 	"zinx/lib/logger"
 	"zinx/ziface"
@@ -38,13 +36,13 @@ func (conn *Connection) startReader() {
 	for {
 		// 读取客户端的数据到buf中
 		if _, err = io.ReadFull(conn.conn, header); err != nil {
-			logger.Debug("read header error type:", reflect.TypeOf(err))
-			// 判断是否远程链接已经关闭
-			if errors.Is(err, net.ErrClosed) {
-				logger.Info("remote addr is ", conn.RemoteAddr(), " closed")
-				break
+			// 判断是否是OpError，如果是则判断是否是链接关闭
+			if opErr, ok := err.(*net.OpError); ok && opErr.Err.Error() == "use of closed network connection" {
+				logger.Error("connId = ", conn.connId, " is closed")
+			} else {
+				logger.Error("conn Read error: ", err)
 			}
-			logger.Error("conn Read error: ", err)
+
 			conn.exitChan <- struct{}{}
 			break
 		}
