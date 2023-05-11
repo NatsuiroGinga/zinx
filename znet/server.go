@@ -36,10 +36,11 @@ func (server *Server) RegisterRouter(msgID uint32, router ziface.IRouter) (err e
 
 func NewServer() *Server {
 	return &Server{
-		name:      config.ServerProperties.Name,
-		ipVersion: IP_VERSION,
-		ip:        config.ServerProperties.Host,
-		port:      config.ServerProperties.Port,
+		name:       config.ServerProperties.Name,
+		ipVersion:  IP_VERSION,
+		ip:         config.ServerProperties.Host,
+		port:       config.ServerProperties.Port,
+		msgHandler: NewMsgHandler(),
 	}
 }
 
