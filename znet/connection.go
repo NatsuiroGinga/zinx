@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"reflect"
 	errs "zinx/lib/enum/err"
 	"zinx/lib/logger"
 	"zinx/ziface"
@@ -37,6 +38,7 @@ func (conn *Connection) startReader() {
 	for {
 		// 读取客户端的数据到buf中
 		if _, err = io.ReadFull(conn.conn, header); err != nil {
+			logger.Debug("read header error type:", reflect.TypeOf(err))
 			// 判断是否远程链接已经关闭
 			if errors.Is(err, net.ErrClosed) {
 				logger.Info("remote addr is ", conn.RemoteAddr(), " closed")
