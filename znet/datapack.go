@@ -29,6 +29,7 @@ func (dataPack *DataPack) HeadLen() uint32 {
 	return 4 + 4
 }
 
+// Pack 封包方法(压缩数据)
 func (dataPack *DataPack) Pack(msg ziface.IMessage) (data []byte, err error) {
 	// 1. 创建一个存放bytes字节的缓冲
 	buf := new(bytes.Buffer)
@@ -51,6 +52,7 @@ func (dataPack *DataPack) Pack(msg ziface.IMessage) (data []byte, err error) {
 	return buf.Bytes(), nil
 }
 
+// Unpack 拆包方法(将包的Head信息读出来)之后再根据head信息里的data的长度，再进行一次读
 func (dataPack *DataPack) Unpack(data []byte) (msg ziface.IMessage, err error) {
 	// 1. 创建一个从输入二进制数据的ioReader
 	reader := bytes.NewReader(data)

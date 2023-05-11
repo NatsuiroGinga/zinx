@@ -15,7 +15,6 @@ import (
     "port": 8848
   },
   "zinx": {
-    "version": "V0.4",
     "max-connections": 1000,
     "max-package-size": 4096
   }
@@ -42,13 +41,13 @@ var ZinxProperties *zinxProperties
 
 // zinxProperties 框架配置参数
 type zinxProperties struct {
+	version        string
 	MaxConnections int    `json:"max-connections"`  // 当前服务器主机允许的最大连接数
 	MaxPackageSize uint32 `json:"max-package-size"` // 框架的数据包的最大值
-	Version        string `json:"version"`          // Zinx版本
 }
 
 func (properties *zinxProperties) String() string {
-	return fmt.Sprintf("[Zinx] Version: %s, MaxConnections: %d, MaxPackageSize: %d", properties.Version, properties.MaxConnections, properties.MaxPackageSize)
+	return fmt.Sprintf("[Zinx] Version: %s, MaxConnections: %d, MaxPackageSize: %d", properties.version, properties.MaxConnections, properties.MaxPackageSize)
 }
 
 // 初始化配置参数
@@ -64,7 +63,7 @@ func init() {
 	ZinxProperties = &zinxProperties{
 		MaxConnections: 1000,
 		MaxPackageSize: 4 << 10,
-		Version:        "v0.4",
+		version:        "v0.5",
 	}
 	if fileExists(filename) {
 		loadFile(filename)
