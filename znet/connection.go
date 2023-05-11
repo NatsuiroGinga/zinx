@@ -112,18 +112,15 @@ func (conn *Connection) Stop() {
 }
 
 func (conn *Connection) TcpConnection() *net.TCPConn {
-	//TODO implement me
-	panic("implement me")
+	return conn.conn
 }
 
 func (conn *Connection) ConnID() uint32 {
-	//TODO implement me
-	panic("implement me")
+	return conn.connId
 }
 
 func (conn *Connection) RemoteAddr() net.Addr {
-	//TODO implement me
-	panic("implement me")
+	return conn.conn.RemoteAddr()
 }
 
 // Send 发送数据，将数据发送给管道
