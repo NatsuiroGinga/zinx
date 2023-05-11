@@ -19,6 +19,7 @@ func init() {
 type DataPack struct {
 }
 
+// NewDataPack 返回一个DataPack单例
 func NewDataPack() *DataPack {
 	return dataPack
 }
