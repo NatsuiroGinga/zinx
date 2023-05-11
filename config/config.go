@@ -11,14 +11,13 @@ import (
 {
   "server": {
     "name": "zinx",
-    "type": "tcp",
     "host": "127.0.0.1",
     "port": 8848
   },
   "zinx": {
     "version": "V0.4",
-    "max_conn": 1000,
-    "max_package_size": 4096
+    "max-connections": 1000,
+    "max-package-size": 4096
   }
 }
 */
