@@ -39,7 +39,7 @@ func (conn *Connection) startReader() {
 			// 判断是否远程链接已经关闭
 			if err == io.EOF {
 				logger.Info("remote addr is ", conn.RemoteAddr(), " closed")
-				return
+				break
 			}
 			logger.Error("conn Read error: ", err)
 			conn.exitChan <- struct{}{}
