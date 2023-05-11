@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -37,7 +38,7 @@ func (conn *Connection) startReader() {
 		// 读取客户端的数据到buf中
 		if _, err = io.ReadFull(conn.conn, header); err != nil {
 			// 判断是否远程链接已经关闭
-			if err == io.EOF {
+			if errors.Is(err, net.ErrClosed) {
 				logger.Info("remote addr is ", conn.RemoteAddr(), " closed")
 				break
 			}
