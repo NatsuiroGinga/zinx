@@ -19,6 +19,10 @@ func init() {
 type DataPack struct {
 }
 
+func NewDataPack() *DataPack {
+	return dataPack
+}
+
 func (dataPack *DataPack) HeadLen() uint32 {
 	// id uint32(4字节) + dataLen uint32(4字节)
 	return 4 + 4
