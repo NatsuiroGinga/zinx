@@ -1,6 +1,7 @@
 package znet
 
 import (
+	"fmt"
 	"io"
 	"net"
 	errs "zinx/lib/enum/err"
@@ -35,6 +36,11 @@ func (conn *Connection) startReader() {
 	for {
 		// 读取客户端的数据到buf中
 		if _, err = io.ReadFull(conn.conn, header); err != nil {
+			// 判断是否远程链接已经关闭
+			if err == io.EOF {
+				logger.Info("remote addr is ", conn.RemoteAddr(), " closed")
+				return
+			}
 			logger.Error("conn Read error: ", err)
 			conn.exitChan <- struct{}{}
 			break
@@ -67,7 +73,7 @@ func (conn *Connection) startReader() {
 
 // StartWriter 链接的写业务方法, 从chan中获取数据，然后写给客户端
 func (conn *Connection) startWriter() {
-	logger.Info("Writer Goroutine is running...")
+	logger.Info("[Writer Goroutine is running...]")
 	defer func() {
 		logger.Info("connId = ", conn.connId, " Writer is exit, remote addr is ", conn.RemoteAddr())
 		conn.Stop()
@@ -88,7 +94,7 @@ func (conn *Connection) startWriter() {
 
 // Start 启动链接，让当前的链接准备开始工作
 func (conn *Connection) Start() {
-	logger.Info("conn Start()...connId = ", conn.connId)
+	logger.Info(fmt.Sprintf("conn %d start...", conn.connId))
 	// 1. 启动从当前链接的读数据业务
 	go conn.startReader()
 	// 2. 启动从当前链接写数据业务
@@ -97,7 +103,7 @@ func (conn *Connection) Start() {
 
 // Stop 停止链接，结束当前链接的工作
 func (conn *Connection) Stop() {
-	logger.Info("conn Stop()...connId = ", conn.connId)
+	logger.Info(fmt.Sprintf("conn %d stop...", conn.connId))
 	if conn.isClosed {
 		return
 	}
