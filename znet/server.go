@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"net"
 	"time"
+	"zinx/config"
 	"zinx/lib/logger"
 	"zinx/ziface"
 )
 
-// 默认配置
-const (
-	IP_VERSION = "tcp4"
-	IP         = "0.0.0.0"
-	PORT       = 8848
-)
+// IP_VERSION 默认配置
+const IP_VERSION = "tcp4"
 
 // Server defines the server struct
 type Server struct {
@@ -30,18 +27,18 @@ func (server *Server) RegisterRouter(router ziface.IRouter) ziface.IServer {
 	return server
 }
 
-func NewServer(name string) *Server {
+func NewServer() *Server {
 	return &Server{
-		name:      name,
+		name:      config.ServerProperties.Name,
 		ipVersion: IP_VERSION,
-		ip:        IP,
-		port:      PORT,
+		ip:        config.ServerProperties.Host,
+		port:      config.ServerProperties.Port,
 	}
 }
 
 // NewServerWithRouter creates a server with router
 func NewServerWithRouter(name string, router ziface.IRouter) (server *Server) {
-	return NewServer(name).RegisterRouter(router).(*Server)
+	return NewServer().RegisterRouter(router).(*Server)
 }
 
 func init() {
@@ -54,7 +51,9 @@ func init() {
 }
 
 func (server *Server) Start() {
-	logger.Info(fmt.Sprintf("Server Listener at ip: %s, port: %d, is starting...", server.ip, server.port))
+	logger.Info(config.ServerProperties, "is starting...")
+	logger.Info(config.ZinxProperties)
+
 	go func() {
 		// 1. 创建socket
 		addr, err := net.ResolveTCPAddr(server.ipVersion, fmt.Sprintf("%s:%d", server.ip, server.port))
@@ -62,6 +61,7 @@ func (server *Server) Start() {
 			logger.Error(fmt.Sprintf("Resolve TCP Address failed: %s", err.Error()))
 			return
 		}
+
 		// 2. 监听服务器地址
 		listener, err := net.ListenTCP(server.ipVersion, addr)
 		if err != nil {
@@ -70,6 +70,7 @@ func (server *Server) Start() {
 		}
 		logger.Info(fmt.Sprintf("Server Listener at ip: %s, port: %d, is started", server.ip, server.port))
 		cid := uint32(0)
+
 		// 3. 阻塞等待客户端连接，处理客户端连接业务
 		for {
 			// 3.1 如果有客户端连接，阻塞返回

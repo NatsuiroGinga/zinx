@@ -2,6 +2,7 @@ package znet
 
 import (
 	"net"
+	"zinx/config"
 	"zinx/lib/logger"
 	"zinx/lib/util"
 	"zinx/ziface"
@@ -20,11 +21,11 @@ type Connection struct {
 func (conn *Connection) startReader() {
 	logger.Info("Reader Goroutine is running...")
 	defer func() {
-		logger.Info("connId = ", conn.connId, " Reader is exit, remote addr is ", conn.RemoteAddr().String())
+		logger.Info("connId = ", conn.connId, " Reader is exit, remote addr is ", conn.RemoteAddr())
 		conn.Stop()
 	}()
 
-	buf := make([]byte, 512)
+	buf := make([]byte, config.ZinxProperties.MaxPackageSize)
 	var (
 		n   int
 		err error
