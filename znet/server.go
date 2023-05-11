@@ -68,7 +68,7 @@ func (server *Server) Start() {
 			logger.Error(fmt.Sprintf("Listen TCP Address failed: %s", err.Error()))
 			return
 		}
-		logger.Info(fmt.Sprintf("Server Listener at ip: %s, port: %d, is started", server.ip, server.port))
+		logger.Info(fmt.Sprintf("Server %s is started", server.name))
 		cid := uint32(0)
 
 		// 3. 阻塞等待客户端连接，处理客户端连接业务
