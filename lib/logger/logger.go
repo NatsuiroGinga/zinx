@@ -95,7 +95,7 @@ func Infof(format string, a ...any) {
 	mu.Lock()
 	defer mu.Unlock()
 	setPrefix(INFO)
-	logger.Printf(format, a)
+	logger.Println(fmt.Sprintf(format, a...))
 }
 
 // Warn prints warning log

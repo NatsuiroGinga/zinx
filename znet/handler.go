@@ -78,14 +78,14 @@ func (handler *MsgHandler) startOneWorker(workerId uint32, taskQueue chan ziface
 func (handler *MsgHandler) SendMsgToTaskQueue(request ziface.IRequest) {
 	// hash取模得到当前的workerId
 	workerId := request.Connection().ConnID() % handler.workerPoolSize
-	logger.Infof("Add ConnID: %d, request msgID: %d to workerID: %d", request.Connection().ConnID(), request.Message().ID(), workerId)
+	logger.Info(fmt.Sprintf("Add ConnID: %d, request msgID: %d to workerID: %d", request.Connection().ConnID(), request.Message().ID(), workerId))
 	// 轮询 查找空闲的worker, 将消息发送给worker的任务队列, 由worker进行处理
 	// 防止超时
 	timer := time.NewTimer(time.Second * 3)
 	for {
 		select {
 		case handler.taskQueue[workerId] <- request: // 将消息发送给worker的任务队列
-			logger.Infof("add request to worker ID: %d successfully", workerId)
+			logger.Info(fmt.Sprintf("add request to worker ID: %d successfully", workerId))
 			return
 		case <-timer.C: // 说明当前的worker_pool满了
 			logger.Error(errs.WORKER_POOL_FULL)
