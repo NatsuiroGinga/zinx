@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"zinx/config"
-	errs "zinx/lib/enum/err"
+	"zinx/lib/errcode"
 	"zinx/lib/logger"
 	"zinx/ziface"
 )
@@ -68,8 +68,8 @@ func (dataPack *DataPack) Unpack(data []byte) (msg ziface.IMessage, err error) {
 	}
 	// 3. 判断dataLen是否超出了我们允许的最大包长度
 	if config.ZinxProperties.MaxPackageSize > 0 && dataLen > config.ZinxProperties.MaxPackageSize {
-		logger.Error(errs.TOO_LARGE_PACKAGE)
-		return nil, errs.TOO_LARGE_PACKAGE
+		logger.Error(errcode.TOO_LARGE_PACKAGE)
+		return nil, errcode.TOO_LARGE_PACKAGE
 	}
 	// 4. 封装到Message中
 	msg = &Message{

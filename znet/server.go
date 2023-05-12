@@ -5,9 +5,8 @@ import (
 	"net"
 	"time"
 	"zinx/config"
-	errs "zinx/lib/enum/err"
+	"zinx/lib/errcode"
 	"zinx/lib/logger"
-	"zinx/lib/util"
 	"zinx/ziface"
 )
 
@@ -78,17 +77,17 @@ func (server *Server) Start() {
 		// 1. 创建socket
 		addr, err := net.ResolveTCPAddr(server.ipVersion, fmt.Sprintf("%s:%d", server.ip, server.port))
 		if err != nil {
-			logger.Error(fmt.Sprintf("Resolve TCP Address failed: %s", err.Error()))
+			logger.Errorf("Resolve TCP Address failed: %s", err.Error())
 			return
 		}
 
 		// 2. 监听服务器地址
 		listener, err := net.ListenTCP(server.ipVersion, addr)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Listen TCP Address failed: %s", err.Error()))
+			logger.Errorf("Listen TCP Address failed: %s", err.Error())
 			return
 		}
-		logger.Info(fmt.Sprintf("Server %s is started", server.name))
+		logger.Infof("Server %s is started", server.name)
 		cid := uint32(0)
 
 		// 3. 阻塞等待客户端连接，处理客户端连接业务
@@ -96,12 +95,12 @@ func (server *Server) Start() {
 			// 3.1 如果有客户端连接，阻塞返回
 			conn, err := listener.AcceptTCP()
 			if err != nil {
-				logger.Error(util.NewErrorWithPattern(errs.ACCEPT_TCP_FAILED, err.Error()))
+				logger.Error(errcode.ACCEPT_TCP_FAILED.Format(err.Error()))
 				continue
 			}
 			// 3.2 检查当前连接数是否超过最大连接数, 超过则关闭连接
 			if server.connManager.Len() >= config.ZinxProperties.MaxConnections {
-				logger.Error(errs.MAX_CONN_REACHED)
+				logger.Error(errcode.MAX_CONN_REACHED)
 				conn.Close()
 				continue
 			}
@@ -109,7 +108,7 @@ func (server *Server) Start() {
 			dealConn := NewConnection(server, conn, cid, server.msgHandler)
 			cid++
 			// 3.2 处理客户端业务
-			logger.Info(fmt.Sprintf("Accept a client, Address: %s", conn.RemoteAddr()))
+			logger.Infof("Accept a client, Address: %s", conn.RemoteAddr())
 			go dealConn.Start()
 		}
 	}()

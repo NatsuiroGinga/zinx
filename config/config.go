@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"zinx/ziface"
 )
 
 /* 配置文件格式
@@ -26,14 +25,9 @@ var ServerProperties *serverProperties
 
 // serverProperties 服务器配置参数
 type serverProperties struct {
-	Port      int            `json:"port"` // 服务器端口
-	Name      string         `json:"name"` // 服务器名称
-	Host      string         `json:"host"` // 服务器IP
-	tcpServer ziface.IServer // 当前Zinx全局的Server对象
-}
-
-func (properties *serverProperties) TcpServer() ziface.IServer {
-	return properties.tcpServer
+	Port int    `json:"port"` // 服务器端口
+	Name string `json:"name"` // 服务器名称
+	Host string `json:"host"` // 服务器IP
 }
 
 func (properties *serverProperties) String() string {
@@ -50,6 +44,7 @@ type zinxProperties struct {
 	MaxPackageSize   uint32 `json:"max-package-size"` // 框架的数据包的最大值
 	WorkerPoolSize   uint32 `json:"worker-pool-size"` // 当前业务工作Worker池的Goroutine数量
 	maxWorkerTaskLen uint32 // 每个Worker对应的消息队列的任务数量最大值
+	TimeOut          int    `json:"time-out"` // 发送数据包的超时时间, 单位秒
 }
 
 func (properties *zinxProperties) Version() string {
@@ -79,6 +74,7 @@ func init() {
 		version:          "v0.5",
 		WorkerPoolSize:   10,
 		maxWorkerTaskLen: 1 << 10,
+		TimeOut:          5,
 	}
 	if fileExists(filename) {
 		loadFile(filename)

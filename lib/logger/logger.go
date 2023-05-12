@@ -71,7 +71,6 @@ func setPrefix(level logLevel) {
 	} else {
 		logPrefix = fmt.Sprintf("[%s] ", levelFlags[level])
 	}
-
 	logger.SetPrefix(logPrefix)
 }
 
@@ -83,12 +82,26 @@ func Debug(v ...interface{}) {
 	logger.Println(v...)
 }
 
+func Debugf(format string, args ...any) {
+	mu.Lock()
+	defer mu.Unlock()
+	setPrefix(DEBUG)
+	logger.Printf(format, args...)
+}
+
 // Info prints normal log
 func Info(v ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
 	setPrefix(INFO)
 	logger.Println(v...)
+}
+
+func Infof(format string, args ...any) {
+	mu.Lock()
+	defer mu.Unlock()
+	setPrefix(INFO)
+	logger.Printf(format, args...)
 }
 
 // Warn prints warning log
@@ -99,6 +112,13 @@ func Warn(v ...interface{}) {
 	logger.Println(v...)
 }
 
+func Warnf(format string, args ...any) {
+	mu.Lock()
+	defer mu.Unlock()
+	setPrefix(WARNING)
+	logger.Printf(format, args...)
+}
+
 // Error prints error log
 func Error(v ...interface{}) {
 	mu.Lock()
@@ -107,10 +127,24 @@ func Error(v ...interface{}) {
 	logger.Println(v...)
 }
 
+func Errorf(format string, args ...any) {
+	mu.Lock()
+	defer mu.Unlock()
+	setPrefix(ERROR)
+	logger.Printf(format, args...)
+}
+
 // Fatal prints error log then stop the program
 func Fatal(v ...interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
 	setPrefix(FATAL)
 	logger.Fatalln(v...)
+}
+
+func Fatalf(format string, args ...any) {
+	mu.Lock()
+	defer mu.Unlock()
+	setPrefix(FATAL)
+	logger.Printf(format, args...)
 }

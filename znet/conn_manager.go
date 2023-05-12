@@ -3,7 +3,7 @@ package znet
 import (
 	"sync"
 	"sync/atomic"
-	errs "zinx/lib/enum/err"
+	"zinx/lib/errcode"
 	"zinx/lib/logger"
 	"zinx/ziface"
 )
@@ -16,6 +16,10 @@ type ConnManager struct {
 
 // Add 添加连接, 返回修改后的manager
 func (manager *ConnManager) Add(conn ziface.IConnection) ziface.IConnManager {
+	if _, ok := manager.connections.Load(conn.ConnID()); ok {
+		logger.Error("connection already exists")
+		return manager
+	}
 	manager.connections.Store(conn.ConnID(), conn)
 	manager.connSize.Add(1)
 	logger.Info("connection add to ConnManager successfully: conn num = ", manager.Len())
@@ -26,7 +30,7 @@ func (manager *ConnManager) Add(conn ziface.IConnection) ziface.IConnManager {
 // Remove 删除连接
 func (manager *ConnManager) Remove(conn ziface.IConnection) error {
 	if manager.Len() == 0 {
-		return errs.CONN_NOT_FOUND
+		return errcode.CONN_NOT_FOUND.Format(conn.ConnID())
 	}
 	manager.connections.Delete(conn.ConnID())
 	manager.connSize.Add(-1)
@@ -37,12 +41,12 @@ func (manager *ConnManager) Remove(conn ziface.IConnection) error {
 // Get 根据connID获取连接
 func (manager *ConnManager) Get(connID uint32) (ziface.IConnection, error) {
 	if manager.Len() == 0 {
-		return nil, errs.CONN_NOT_FOUND
+		return nil, errcode.CONN_NOT_FOUND.Format(connID)
 	}
 
 	conn, ok := manager.connections.Load(connID)
 	if !ok {
-		return nil, errs.CONN_NOT_FOUND
+		return nil, errcode.CONN_NOT_FOUND.Format(connID)
 	}
 
 	return conn.(ziface.IConnection), nil

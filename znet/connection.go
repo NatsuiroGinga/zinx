@@ -1,12 +1,12 @@
 package znet
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"strings"
+	"sync"
 	"zinx/config"
-	errs "zinx/lib/enum/err"
+	"zinx/lib/errcode"
 	"zinx/lib/logger"
 	"zinx/ziface"
 )
@@ -20,6 +20,22 @@ type Connection struct {
 	exitChan   chan struct{}      // 告知当前链接已经退出的/停止的channel
 	msgHandler ziface.IMsgHandler // 消息管理模块
 	msgChan    chan []byte        // 无缓冲管道，用于读、写两个goroutine之间的消息通信
+	properties sync.Map           // 链接属性
+}
+
+func (conn *Connection) SetProperty(key string, value any) {
+	conn.properties.Store(key, value)
+}
+
+func (conn *Connection) GetProperty(key string) (any, error) {
+	if value, ok := conn.properties.Load(key); ok {
+		return value, nil
+	}
+	return nil, errcode.PROPERTY_NOT_FOUND.Format(key)
+}
+
+func (conn *Connection) RemoveProperty(key string) {
+	conn.properties.Delete(key)
 }
 
 // StartReader 链接的读业务方法
@@ -106,7 +122,7 @@ func (conn *Connection) startWriter() {
 
 // Start 启动链接，让当前的链接准备开始工作
 func (conn *Connection) Start() {
-	logger.Info(fmt.Sprintf("connId = %d start work, remote addr is %s", conn.connId, conn.RemoteAddr()))
+	logger.Infof("connId = %d start work, remote addr is %s", conn.connId, conn.RemoteAddr())
 	// 1. 启动从当前链接的读数据业务
 	go conn.startReader()
 	// 2. 启动从当前链接写数据业务
@@ -117,7 +133,7 @@ func (conn *Connection) Start() {
 
 // Stop 停止链接，结束当前链接的工作
 func (conn *Connection) Stop() {
-	logger.Info(fmt.Sprintf("connId = %d stop work, remote addr is %s", conn.connId, conn.RemoteAddr()))
+	logger.Infof("connId = %d stop work, remote addr is %s", conn.connId, conn.RemoteAddr())
 	if conn.isClosed {
 		return
 	}
@@ -128,8 +144,7 @@ func (conn *Connection) Stop() {
 	// 2. 通知从缓冲队列读数据的业务，该链接已经关闭
 	conn.exitChan <- struct{}{}
 	// 3. 删除服务器中的链接
-	err := conn.server.ConnManager().Remove(conn)
-	if err != nil {
+	if err := conn.server.ConnManager().Remove(conn); err != nil {
 		logger.Error("remove conn error: ", err)
 	}
 	// 4. 关闭该链接全部管道
@@ -153,7 +168,7 @@ func (conn *Connection) RemoteAddr() net.Addr {
 func (conn *Connection) Send(msgId uint32, data []byte) (err error) {
 	// 1. 判断当前链接是否已经关闭
 	if conn.isClosed {
-		return errs.CONNECT_CLOSED
+		return errcode.CONNECT_CLOSED
 	}
 	// 2. 将data进行封包，并且发送
 	message := NewMessage(msgId, data)

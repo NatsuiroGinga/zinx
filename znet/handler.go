@@ -5,9 +5,8 @@ import (
 	"sync"
 	"time"
 	"zinx/config"
-	errs "zinx/lib/enum/err"
+	"zinx/lib/errcode"
 	"zinx/lib/logger"
-	"zinx/lib/util"
 	"zinx/ziface"
 )
 
@@ -30,7 +29,7 @@ func (handler *MsgHandler) Handle(request ziface.IRequest) (err error) {
 	if router, ok := handler.routers.Load(request.Message().ID()); ok {
 		r, exist := router.(ziface.IRouter)
 		if !exist {
-			err = util.NewErrorWithPattern(errs.MESSAGE_NOT_REGISTERED, request.Message().ID())
+			err = errcode.MESSAGE_NOT_REGISTERED.Format(request.Message().ID())
 			logger.Error(err)
 			return
 		}
@@ -39,7 +38,7 @@ func (handler *MsgHandler) Handle(request ziface.IRequest) (err error) {
 		r.PostHandle(request)
 		return
 	}
-	err = util.NewErrorWithPattern(errs.MESSAGE_NOT_REGISTERED, request.Message().ID())
+	err = errcode.MESSAGE_NOT_REGISTERED.Format(request.Message().ID())
 	logger.Error(err)
 	return
 }
@@ -47,12 +46,12 @@ func (handler *MsgHandler) Handle(request ziface.IRequest) (err error) {
 // RegisterRouter 注册路由
 func (handler *MsgHandler) RegisterRouter(msgId uint32, router ziface.IRouter) (err error) {
 	if _, ok := handler.routers.Load(msgId); ok {
-		err = util.NewErrorWithPattern(errs.MESSAGE_REGISTERED, msgId)
+		err = errcode.MESSAGE_REGISTERED.Format(msgId)
 		logger.Error(err)
 		return
 	}
 	handler.routers.Store(msgId, router)
-	logger.Info(fmt.Sprintf("msgId: %d register successfully", msgId))
+	logger.Infof("msgId: %d register successfully", msgId)
 	return
 }
 
@@ -69,7 +68,7 @@ func (handler *MsgHandler) StartWorkerPool() {
 
 // startOneWorker 启动一个Worker工作流程
 func (handler *MsgHandler) startOneWorker(workerId uint32, taskQueue chan ziface.IRequest) {
-	logger.Info(fmt.Sprintf("worker ID: %d is started", workerId))
+	logger.Infof("worker ID: %d is started", workerId)
 	// 不断的阻塞等待对应消息队列的消息
 	for request := range taskQueue {
 		err := handler.Handle(request)
@@ -83,17 +82,17 @@ func (handler *MsgHandler) startOneWorker(workerId uint32, taskQueue chan ziface
 func (handler *MsgHandler) SendMsgToTaskQueue(request ziface.IRequest) {
 	// hash取模得到当前的workerId
 	workerId := request.Connection().ConnID() % handler.workerPoolSize
-	logger.Info(fmt.Sprintf("Add ConnID: %d, request msgID: %d to workerID: %d", request.Connection().ConnID(), request.Message().ID(), workerId))
+	logger.Info("Add ConnID: %d, request msgID: %d to workerID: %d", request.Connection().ConnID(), request.Message().ID(), workerId)
 	// 轮询 查找空闲的worker, 将消息发送给worker的任务队列, 由worker进行处理
 	// 防止超时
-	timer := time.NewTimer(time.Second * 3)
+	timer := time.NewTimer(time.Second * time.Duration(config.ZinxProperties.TimeOut))
 	for {
 		select {
 		case handler.taskQueue[workerId] <- request: // 将消息发送给worker的任务队列
 			logger.Info(fmt.Sprintf("Add request to worker ID: %d successfully", workerId))
 			return
 		case <-timer.C: // 说明当前的worker_pool满了
-			logger.Error(errs.WORKER_POOL_FULL)
+			logger.Error(errcode.WORKER_POOL_FULL)
 			timer.Stop()
 			return
 		default: // 选择下一个worker
