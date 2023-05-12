@@ -2,6 +2,7 @@ package znet
 
 import (
 	"fmt"
+	"sync"
 	"time"
 	"zinx/config"
 	errs "zinx/lib/enum/err"
@@ -12,14 +13,13 @@ import (
 
 // MsgHandler 消息管理抽象层
 type MsgHandler struct {
-	routers        map[uint32]ziface.IRouter // 消息ID和路由的映射关系
-	taskQueue      []chan ziface.IRequest    // 任务队列
-	workerPoolSize uint32                    // 业务工作Worker池的数量
+	routers        sync.Map               /*map[uint32]ziface.IRouter*/ // 消息ID和路由的映射关系
+	taskQueue      []chan ziface.IRequest // 任务队列
+	workerPoolSize uint32                 // 业务工作Worker池的数量
 }
 
 func NewMsgHandler() *MsgHandler {
 	return &MsgHandler{
-		routers:        make(map[uint32]ziface.IRouter),
 		workerPoolSize: config.ZinxProperties.WorkerPoolSize,
 		taskQueue:      make([]chan ziface.IRequest, config.ZinxProperties.WorkerPoolSize),
 	}
@@ -27,10 +27,16 @@ func NewMsgHandler() *MsgHandler {
 
 // Handle 处理消息
 func (handler *MsgHandler) Handle(request ziface.IRequest) (err error) {
-	if router, ok := handler.routers[request.Message().ID()]; ok {
-		router.PreHandle(request)
-		router.Handle(request)
-		router.PostHandle(request)
+	if router, ok := handler.routers.Load(request.Message().ID()); ok {
+		r, exist := router.(ziface.IRouter)
+		if !exist {
+			err = util.NewErrorWithPattern(errs.MESSAGE_NOT_REGISTERED, request.Message().ID())
+			logger.Error(err)
+			return
+		}
+		r.PreHandle(request)
+		r.Handle(request)
+		r.PostHandle(request)
 		return
 	}
 	err = util.NewErrorWithPattern(errs.MESSAGE_NOT_REGISTERED, request.Message().ID())
@@ -40,14 +46,13 @@ func (handler *MsgHandler) Handle(request ziface.IRequest) (err error) {
 
 // RegisterRouter 注册路由
 func (handler *MsgHandler) RegisterRouter(msgId uint32, router ziface.IRouter) (err error) {
-	if _, ok := handler.routers[msgId]; ok {
+	if _, ok := handler.routers.Load(msgId); ok {
 		err = util.NewErrorWithPattern(errs.MESSAGE_REGISTERED, msgId)
 		logger.Error(err)
 		return
 	}
-	handler.routers[msgId] = router
+	handler.routers.Store(msgId, router)
 	logger.Info(fmt.Sprintf("msgId: %d register successfully", msgId))
-
 	return
 }
 
@@ -85,7 +90,7 @@ func (handler *MsgHandler) SendMsgToTaskQueue(request ziface.IRequest) {
 	for {
 		select {
 		case handler.taskQueue[workerId] <- request: // 将消息发送给worker的任务队列
-			logger.Info(fmt.Sprintf("add request to worker ID: %d successfully", workerId))
+			logger.Info(fmt.Sprintf("Add request to worker ID: %d successfully", workerId))
 			return
 		case <-timer.C: // 说明当前的worker_pool满了
 			logger.Error(errs.WORKER_POOL_FULL)

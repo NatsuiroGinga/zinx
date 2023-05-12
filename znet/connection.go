@@ -13,6 +13,7 @@ import (
 
 // Connection 链接模块
 type Connection struct {
+	server     ziface.IServer     // 当前链接隶属于哪个server
 	conn       *net.TCPConn       // 当前链接的TCPConn
 	connId     uint32             // 链接的ID
 	isClosed   bool               // 当前的链接状态
@@ -105,25 +106,33 @@ func (conn *Connection) startWriter() {
 
 // Start 启动链接，让当前的链接准备开始工作
 func (conn *Connection) Start() {
-	logger.Info(fmt.Sprintf("conn %d start...", conn.connId))
+	logger.Info(fmt.Sprintf("connId = %d start work, remote addr is %s", conn.connId, conn.RemoteAddr()))
 	// 1. 启动从当前链接的读数据业务
 	go conn.startReader()
 	// 2. 启动从当前链接写数据业务
 	go conn.startWriter()
+	// 3. 调用OnConnStart钩子函数
+	conn.server.CallOnConnStart(conn)
 }
 
 // Stop 停止链接，结束当前链接的工作
 func (conn *Connection) Stop() {
-	logger.Info(fmt.Sprintf("conn %d stop...", conn.connId))
+	logger.Info(fmt.Sprintf("connId = %d stop work, remote addr is %s", conn.connId, conn.RemoteAddr()))
 	if conn.isClosed {
 		return
 	}
 	conn.isClosed = true
+	conn.server.CallOnConnStop(conn)
 	// 1. 关闭socket链接
 	_ = conn.conn.Close()
 	// 2. 通知从缓冲队列读数据的业务，该链接已经关闭
 	conn.exitChan <- struct{}{}
-	// 3. 关闭该链接全部管道
+	// 3. 删除服务器中的链接
+	err := conn.server.ConnManager().Remove(conn)
+	if err != nil {
+		logger.Error("remove conn error: ", err)
+	}
+	// 4. 关闭该链接全部管道
 	close(conn.exitChan)
 	close(conn.msgChan)
 }
@@ -160,13 +169,19 @@ func (conn *Connection) Send(msgId uint32, data []byte) (err error) {
 }
 
 // NewConnection 初始化链接模块的方法
-func NewConnection(conn *net.TCPConn, connID uint32, msgHandler ziface.IMsgHandler) *Connection {
-	return &Connection{
+func NewConnection(server ziface.IServer, conn *net.TCPConn, connID uint32, msgHandler ziface.IMsgHandler) *Connection {
+	// 初始化Conn属性
+	connection := &Connection{
 		conn:       conn,
 		connId:     connID,
 		isClosed:   false,
 		exitChan:   make(chan struct{}, 1),
 		msgHandler: msgHandler,
 		msgChan:    make(chan []byte),
+		server:     server,
 	}
+	// 将新创建的Conn添加到链接管理中
+	server.ConnManager().Add(connection)
+
+	return connection
 }

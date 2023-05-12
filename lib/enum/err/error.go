@@ -6,6 +6,8 @@ var (
 	TOO_LARGE_PACKAGE = errors.New("too large package recv")
 	CONNECT_CLOSED    = errors.New("connect closed")
 	WORKER_POOL_FULL  = errors.New("worker pool full")
+	CONN_NOT_FOUND    = errors.New("connection not found")
+	MAX_CONN_REACHED  = errors.New("max connection reached")
 )
 
 type Pattern string
