@@ -58,6 +58,7 @@ func (server *Server) Start() {
 	logger.Info(config.ZinxProperties)
 
 	go func() {
+		server.msgHandler.StartWorkerPool()
 		// 1. 创建socket
 		addr, err := net.ResolveTCPAddr(server.ipVersion, fmt.Sprintf("%s:%d", server.ip, server.port))
 		if err != nil {

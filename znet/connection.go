@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"zinx/config"
 	errs "zinx/lib/enum/err"
 	"zinx/lib/logger"
 	"zinx/ziface"
@@ -65,14 +66,19 @@ func (conn *Connection) startReader() {
 			}
 			msg.SetData(data)
 		}
-		// 从路由中，找到注册绑定的Conn对应的router调用
-		go func() {
-			err = conn.msgHandler.Handle(NewRequest(conn, msg))
-			if err != nil {
-				logger.Error("connId = ", conn.connId, " handle error: ", err)
-				return
-			}
-		}()
+		// 将msg封装到request中
+		request := NewRequest(conn, msg)
+		// 将request发送给TaskQueue，由worker进行处理
+		if config.ZinxProperties.WorkerPoolSize > 0 {
+			conn.msgHandler.SendMsgToTaskQueue(request)
+		} else {
+			go func() {
+				err := conn.msgHandler.Handle(request)
+				if err != nil {
+					logger.Error("handle error:", err)
+				}
+			}()
+		}
 	}
 }
 
@@ -88,7 +94,7 @@ func (conn *Connection) startWriter() {
 		select {
 		case data := <-conn.msgChan:
 			if _, err := conn.conn.Write(data); err != nil {
-				logger.Error("send data error: ", err)
+				logger.Error("sendMsgToTaskQueue data error: ", err)
 				return
 			}
 		case <-conn.exitChan:

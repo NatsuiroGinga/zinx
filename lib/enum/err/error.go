@@ -5,6 +5,7 @@ import "errors"
 var (
 	TOO_LARGE_PACKAGE = errors.New("too large package recv")
 	CONNECT_CLOSED    = errors.New("connect closed")
+	WORKER_POOL_FULL  = errors.New("worker pool full")
 )
 
 type Pattern string

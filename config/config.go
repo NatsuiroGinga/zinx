@@ -26,10 +26,14 @@ var ServerProperties *serverProperties
 
 // serverProperties 服务器配置参数
 type serverProperties struct {
-	Port      int            `json:"port"`       // 服务器端口
-	Name      string         `json:"name"`       // 服务器名称
-	Host      string         `json:"host"`       // 服务器IP
-	TCPServer ziface.IServer `json:"tcp-server"` // 当前Zinx全局的Server对象
+	Port      int            `json:"port"` // 服务器端口
+	Name      string         `json:"name"` // 服务器名称
+	Host      string         `json:"host"` // 服务器IP
+	tcpServer ziface.IServer // 当前Zinx全局的Server对象
+}
+
+func (properties *serverProperties) TcpServer() ziface.IServer {
+	return properties.tcpServer
 }
 
 func (properties *serverProperties) String() string {
@@ -41,9 +45,19 @@ var ZinxProperties *zinxProperties
 
 // zinxProperties 框架配置参数
 type zinxProperties struct {
-	version        string
-	MaxConnections int    `json:"max-connections"`  // 当前服务器主机允许的最大连接数
-	MaxPackageSize uint32 `json:"max-package-size"` // 框架的数据包的最大值
+	version          string // 当前Zinx的版本号
+	MaxConnections   int    `json:"max-connections"`  // 当前服务器主机允许的最大连接数
+	MaxPackageSize   uint32 `json:"max-package-size"` // 框架的数据包的最大值
+	WorkerPoolSize   uint32 `json:"worker-pool-size"` // 当前业务工作Worker池的Goroutine数量
+	maxWorkerTaskLen uint32 // 每个Worker对应的消息队列的任务数量最大值
+}
+
+func (properties *zinxProperties) Version() string {
+	return properties.version
+}
+
+func (properties *zinxProperties) MaxWorkerTaskLen() uint32 {
+	return properties.maxWorkerTaskLen
 }
 
 func (properties *zinxProperties) String() string {
@@ -54,16 +68,17 @@ func (properties *zinxProperties) String() string {
 func init() {
 	filename := "config/zinx.json"
 	ServerProperties = &serverProperties{
-		Port:      8848,
-		Name:      "ZinxServerApp",
-		Host:      "0.0.0.0",
-		TCPServer: nil,
+		Port: 8848,
+		Name: "ZinxServerApp",
+		Host: "0.0.0.0",
 	}
 
 	ZinxProperties = &zinxProperties{
-		MaxConnections: 1000,
-		MaxPackageSize: 4 << 10,
-		version:        "v0.5",
+		MaxConnections:   1000,
+		MaxPackageSize:   4 << 10,
+		version:          "v0.5",
+		WorkerPoolSize:   10,
+		maxWorkerTaskLen: 1 << 10,
 	}
 	if fileExists(filename) {
 		loadFile(filename)
